@@ -1,0 +1,5 @@
+{
+  "cleanUrls": true,
+  "buildCommand": "npm run build",
+  "outputDirectory": "client"
+}
