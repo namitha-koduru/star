@@ -216,7 +216,7 @@
     .opp .av{ width:40px; height:40px; font-size:19px; }
   }
 </style>
-<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 </head>
 <body>
 <div id="app"></div>
@@ -260,11 +260,43 @@ const S = {
 
 /* ============================= SOCKET CONNECTION ============================= */
 // Support custom backend URL (for external hosting/decoupling) or fallback to server origin
-const BACKEND_URL = localStorage.getItem('STAR_BACKEND_URL') || '';
+const getBackendUrl = () => {
+  // 1. Check query parameters for backend URL override
+  const params = new URLSearchParams(window.location.search);
+  const queryBackend = params.get('backend');
+  if (queryBackend) {
+    localStorage.setItem('STAR_BACKEND_URL', queryBackend);
+    // Remove query parameter from URL bar to keep it clean
+    const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+    window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+    return queryBackend;
+  }
+
+  // 2. Check override in localStorage
+  const override = localStorage.getItem('STAR_BACKEND_URL');
+  if (override) return override;
+
+  // 3. Auto-detect local development
+  const host = window.location.hostname;
+  if (host === 'localhost' || host === '127.0.0.1') {
+    return 'http://localhost:3000';
+  }
+
+  // 4. Default production backend URL placeholder (replaced by build script)
+  const bakedUrl = '__BACKEND_URL_PLACEHOLDER__';
+  if (bakedUrl && !bakedUrl.startsWith('__')) {
+    return bakedUrl;
+  }
+
+  // Fallback to page origin if hosted together
+  return window.location.origin;
+};
+
+const BACKEND_URL = getBackendUrl();
 const socket = io(BACKEND_URL);
 
 socket.on('connect', () => {
-  console.log('Connected to server via Socket.IO');
+  console.log('✅ Connected to Star Game server:', socket.id);
   const savedRoom = localStorage.getItem('star_room_code');
   if (savedRoom) {
     socket.emit('reconnect-player', { roomCode: savedRoom, playerId: S.playerId }, (res) => {
@@ -283,8 +315,12 @@ socket.on('connect', () => {
   }
 });
 
-socket.on('disconnect', () => {
-  console.log('Disconnected from server');
+socket.on('connect_error', (error) => {
+  console.error('❌ Socket connection failed:', error.message);
+});
+
+socket.on('disconnect', (reason) => {
+  console.log('Disconnected from server, reason:', reason);
   render();
 });
 
