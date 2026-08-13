@@ -216,7 +216,7 @@
     .opp .av{ width:40px; height:40px; font-size:19px; }
   }
 </style>
-<script src="/socket.io.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
 <div id="app"></div>
@@ -276,20 +276,8 @@ const getBackendUrl = () => {
   const override = localStorage.getItem('STAR_BACKEND_URL');
   if (override) return override;
 
-  // 3. Auto-detect local development
-  const host = window.location.hostname;
-  if (host === 'localhost' || host === '127.0.0.1') {
-    return 'http://localhost:3000';
-  }
-
-  // 4. Default production backend URL placeholder (replaced by build script)
-  const bakedUrl = '__BACKEND_URL_PLACEHOLDER__';
-  if (bakedUrl && !bakedUrl.startsWith('__')) {
-    return bakedUrl;
-  }
-
-  // Fallback to page origin if hosted together
-  return window.location.origin;
+  // 3. Default to empty (same origin serving both Express & Sockets)
+  return '';
 };
 
 const BACKEND_URL = getBackendUrl();

@@ -5,8 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server/server.js",
-    "dev": "node server/server.js",
-    "build": "node server/build.js"
+    "dev": "node server/server.js"
   },
   "dependencies": {
     "express": "^4.19.2",
