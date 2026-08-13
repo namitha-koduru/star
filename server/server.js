@@ -17,6 +17,18 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/index.html'));
 });
 
+const fs = require('fs');
+
+// Fallback to serve socket.io.min.js from node_modules if not built yet (local dev helper)
+app.get('/socket.io.min.js', (req, res) => {
+  const clientDistPath = path.join(__dirname, '../node_modules/socket.io/client-dist/socket.io.min.js');
+  if (fs.existsSync(clientDistPath)) {
+    res.sendFile(clientDistPath);
+  } else {
+    res.status(404).send('Socket.IO client not found');
+  }
+});
+
 // Serve static assets from client folder
 app.use(express.static(path.join(__dirname, '../client')));
 
