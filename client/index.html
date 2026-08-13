@@ -216,7 +216,7 @@
     .opp .av{ width:40px; height:40px; font-size:19px; }
   }
 </style>
-<script src="/socket.io/socket.io.js"></script>
+<script src="/socket.io.min.js"></script>
 </head>
 <body>
 <div id="app"></div>
@@ -259,6 +259,34 @@ const S = {
 };
 
 /* ============================= SOCKET CONNECTION ============================= */
+const showCriticalConfigError = (msg) => {
+  setTimeout(() => {
+    const app = document.getElementById('app');
+    if (app) {
+      app.innerHTML = `
+        <div class="screen" style="padding: 20px;">
+          <div class="card-panel" style="text-align:center; max-width:480px; border:2px solid var(--berry); background:#FCEBE4; box-shadow:var(--shadow-lg); z-index:100;">
+            <div style="font-size:48px; margin-bottom:10px;">⚠️</div>
+            <h3 style="color:var(--berry); margin:0 0 12px; font-family:'Baloo 2', cursive; font-size:24px;">Configuration Required</h3>
+            <p style="font-weight:700; color:var(--ink); font-size:15px; line-height:1.6; margin-bottom:16px;">
+              ${escapeHtml(msg)}
+            </p>
+            <p style="font-size:13px; color:var(--ink-soft); line-height:1.5; margin:0;">
+              Please open your Vercel Dashboard, select your project, go to <b>Settings &rarr; Environment Variables</b>, and add:
+            </p>
+            <div style="background:#fff; border:1px solid var(--line); border-radius:8px; padding:10px; margin:12px 0; font-family:monospace; font-size:12px; font-weight:bold; color:var(--clay-dark); text-align:left; word-break:break-all;">
+              Key: VITE_SOCKET_URL<br>
+              Value: https://your-star-backend.onrender.com
+            </div>
+            <p style="font-size:13px; color:var(--ink-soft); line-height:1.5; margin:0;">
+              After adding the variable, trigger a new deployment for Vercel to bake in the URL.
+            </p>
+          </div>
+        </div>`;
+    }
+  }, 100);
+};
+
 // Support custom backend URL (for external hosting/decoupling) or fallback to server origin
 const getBackendUrl = () => {
   // 1. Check query parameters for backend URL override
@@ -276,7 +304,20 @@ const getBackendUrl = () => {
   const override = localStorage.getItem('STAR_BACKEND_URL');
   if (override) return override;
 
-  // 3. Default to empty (same origin serving both Express & Sockets)
+  // 3. Localhost development auto-detection
+  const host = window.location.hostname;
+  if (host === 'localhost' || host === '127.0.0.1') {
+    return 'http://localhost:3000';
+  }
+
+  // 4. Default production backend URL placeholder (replaced by build script)
+  const bakedUrl = '__BACKEND_URL_PLACEHOLDER__';
+  if (bakedUrl && !bakedUrl.startsWith('__')) {
+    return bakedUrl;
+  }
+
+  // 5. If in production and no URL is configured, trigger a critical config warning
+  showCriticalConfigError("Missing production Socket Server URL (VITE_SOCKET_URL is not set or empty).");
   return '';
 };
 
@@ -284,7 +325,7 @@ const BACKEND_URL = getBackendUrl();
 const socket = io(BACKEND_URL);
 
 socket.on('connect', () => {
-  console.log('✅ Connected to Star Game server:', socket.id);
+  console.log('✅ Connected to Star Game backend:', socket.id);
   const savedRoom = localStorage.getItem('star_room_code');
   if (savedRoom) {
     socket.emit('reconnect-player', { roomCode: savedRoom, playerId: S.playerId }, (res) => {
@@ -308,7 +349,7 @@ socket.on('connect_error', (error) => {
 });
 
 socket.on('disconnect', (reason) => {
-  console.log('Disconnected from server, reason:', reason);
+  console.log('Socket disconnected:', reason);
   render();
 });
 

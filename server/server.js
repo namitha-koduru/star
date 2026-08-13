@@ -5,20 +5,37 @@ const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
+
+const frontendUrl = process.env.FRONTEND_URL;
+const allowedOrigins = frontendUrl 
+  ? [frontendUrl] 
+  : ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173", "http://127.0.0.1:5173"];
+
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: allowedOrigins,
     methods: ["GET", "POST"]
   }
 });
 
-// Serve index.html from client folder as root index
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/index.html'));
+// Provide health check endpoint for verification
+app.get('/health', (req, res) => {
+  res.json({ status: "ok", service: "star-game-backend" });
 });
 
-// Serve static assets from client folder
-app.use(express.static(path.join(__dirname, '../client')));
+// Serve frontend statically only in local development (when FRONTEND_URL is not configured)
+if (!frontendUrl) {
+  console.log("Serving static frontend files for local development...");
+  app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/index.html'));
+  });
+  app.use(express.static(path.join(__dirname, '../client')));
+} else {
+  console.log(`Express frontend serving disabled in production (FRONTEND_URL=${frontendUrl}).`);
+  app.get('/', (req, res) => {
+    res.json({ status: "ok", service: "star-game-backend" });
+  });
+}
 
 const PORT = process.env.PORT || 3000;
 
@@ -107,6 +124,7 @@ function nextIndex(room, idx) {
 }
 
 io.on('connection', (socket) => {
+  console.log("Player connected:", socket.id);
   let currentRoomCode = null;
   let currentPlayerId = null;
 
@@ -502,6 +520,7 @@ io.on('connection', (socket) => {
 
   // DISCONNECT
   socket.on('disconnect', () => {
+    console.log("Player disconnected:", socket.id);
     handleDisconnectOrLeave();
   });
 });
