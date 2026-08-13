@@ -7,8 +7,14 @@ const app = express();
 const server = http.createServer(app);
 
 const frontendUrl = process.env.FRONTEND_URL;
+if (frontendUrl) {
+  console.log(`Allowed CORS Origin from FRONTEND_URL: "${frontendUrl}"`);
+} else {
+  console.warn("⚠️ Warning: FRONTEND_URL environment variable is not set on Render. Defaulting to localhost allowed origins.");
+}
+
 const allowedOrigins = frontendUrl 
-  ? [frontendUrl] 
+  ? [frontendUrl, frontendUrl.endsWith('/') ? frontendUrl.slice(0, -1) : frontendUrl + '/'] 
   : ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173", "http://127.0.0.1:5173"];
 
 const io = new Server(server, {
@@ -124,7 +130,7 @@ function nextIndex(room, idx) {
 }
 
 io.on('connection', (socket) => {
-  console.log("Player connected:", socket.id);
+  console.log("✅ Socket connected:", socket.id);
   let currentRoomCode = null;
   let currentPlayerId = null;
 
@@ -519,8 +525,8 @@ io.on('connection', (socket) => {
   });
 
   // DISCONNECT
-  socket.on('disconnect', () => {
-    console.log("Player disconnected:", socket.id);
+  socket.on('disconnect', (reason) => {
+    console.log("❌ Socket disconnected:", socket.id, reason);
     handleDisconnectOrLeave();
   });
 });
