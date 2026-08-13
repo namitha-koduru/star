@@ -13,13 +13,25 @@ if (frontendUrl) {
   console.warn("⚠️ Warning: FRONTEND_URL environment variable is not set on Render. Defaulting to localhost allowed origins.");
 }
 
-const allowedOrigins = frontendUrl 
-  ? [frontendUrl, frontendUrl.endsWith('/') ? frontendUrl.slice(0, -1) : frontendUrl + '/'] 
-  : ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173", "http://127.0.0.1:5173"];
-
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, or same-origin)
+      if (!origin) return callback(null, true);
+      
+      // Allow local development origins
+      const isLocal = origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1');
+      // Allow any Vercel deployment origin
+      const isVercel = origin.endsWith('.vercel.app') || origin.includes('vercel.app');
+      // Allow configured FRONTEND_URL
+      const isConfigured = frontendUrl && (origin === frontendUrl || origin.startsWith(frontendUrl) || frontendUrl.startsWith(origin));
+      
+      if (isLocal || isVercel || isConfigured) {
+        return callback(null, true);
+      }
+      
+      return callback(new Error('Not allowed by CORS'));
+    },
     methods: ["GET", "POST"]
   }
 });
