@@ -10,35 +10,22 @@ const frontendUrl = process.env.FRONTEND_URL;
 if (frontendUrl) {
   console.log(`Allowed CORS Origin from FRONTEND_URL: "${frontendUrl}"`);
 } else {
-  console.warn("⚠️ Warning: FRONTEND_URL environment variable is not set on Render. Defaulting to localhost allowed origins.");
+  console.warn("⚠️ Warning: FRONTEND_URL environment variable is not set on Render.");
 }
 
 const io = new Server(server, {
   cors: {
-    origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, or same-origin)
-      if (!origin) return callback(null, true);
-      
-      // Allow local development origins
-      const isLocal = origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1');
-      // Allow any Vercel deployment origin
-      const isVercel = origin.endsWith('.vercel.app') || origin.includes('vercel.app');
-      // Allow configured FRONTEND_URL
-      const isConfigured = frontendUrl && (origin === frontendUrl || origin.startsWith(frontendUrl) || frontendUrl.startsWith(origin));
-      
-      if (isLocal || isVercel || isConfigured) {
-        return callback(null, true);
-      }
-      
-      return callback(new Error('Not allowed by CORS'));
-    },
+    origin: frontendUrl || "*",
     methods: ["GET", "POST"]
   }
 });
 
 // Provide health check endpoint for verification
-app.get('/health', (req, res) => {
-  res.json({ status: "ok", service: "star-game-backend" });
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    service: "star-game-backend"
+  });
 });
 
 // Serve frontend statically only in local development (when FRONTEND_URL is not configured)
@@ -142,7 +129,7 @@ function nextIndex(room, idx) {
 }
 
 io.on('connection', (socket) => {
-  console.log("✅ Socket connected:", socket.id);
+  console.log("Socket connected:", socket.id);
   let currentRoomCode = null;
   let currentPlayerId = null;
 
@@ -538,11 +525,11 @@ io.on('connection', (socket) => {
 
   // DISCONNECT
   socket.on('disconnect', (reason) => {
-    console.log("❌ Socket disconnected:", socket.id, reason);
+    console.log("Socket disconnected:", socket.id, reason);
     handleDisconnectOrLeave();
   });
 });
 
 server.listen(PORT, () => {
-  console.log(`⭐⭐ STAR GAME Server is running on port ${PORT} ⭐⭐`);
+  console.log(`Star Game backend running on port ${PORT}`);
 });
