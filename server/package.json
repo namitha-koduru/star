@@ -4,7 +4,8 @@
   "description": "Star Game Multiplayer Server",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "build": "echo 'No build step required'"
   },
   "dependencies": {
     "express": "^4.19.2",
